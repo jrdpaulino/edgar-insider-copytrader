@@ -183,3 +183,7 @@ it never flips it, so read the `only:<signal>` rows for direction.
 
 A signal with fewer than 12 correlation readings sits out at weight 0 instead of blocking the others.
 Each extra idea you try raises the chance one looks good by luck: count your attempts.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
