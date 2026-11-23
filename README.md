@@ -23,6 +23,7 @@ EDGAR daily index -> edgar.py (parse Form 4 XML) -> SQLite -> signals.py (cluste
 | `broker.py` | Alpaca REST client (paper or live), including last-trade price |
 | `state.py` | Stores filings, purchases, handled signals, orders and open lots |
 | `agent.py` | The daily run |
+| `backtest.py` | Replays the same rules on SEC's historical datasets |
 | `test_*.py` | 76 offline tests (fake broker, canned EDGAR responses) |
 
 ## What counts as a signal
@@ -58,6 +59,37 @@ It needs Python 3.9+ first. On Windows: `winget install Python.Python.3.12`, the
    nothing. **The first run is slow** (roughly 1,000+ filings per business day at ~6 requests/second,
    so expect 30-60 minutes). Later runs only fetch new filings.
 6. `python agent.py --ignore-market-hours`: a **dry run**; logs what it would do.
+
+## Backtest before trusting it
+
+1. From the SEC's "Insider Transactions Data Sets" page, download a few quarterly zips
+   (e.g. `2025q1_form345.zip`).
+2. `python backtest.py --datasets 2025q1_form345.zip 2025q2_form345.zip`
+
+It replays your configured rules day by day, enters at the next trading day's open, and reports
+forward returns at 5/20/60/90 trading days versus SPY, plus a per-signal CSV. Known limits: survivorship
+bias (delisted tickers have no price data and are skipped), IEX-only prices, no costs or taxes, and
+overlapping holds. Treat a good result as "worth paper trading", not as proof.
+
+## Does it beat the market? Benchmarks and the holdout sweep
+
+SPY is dominated by large caps, while insider-cluster buys skew small, so also compare against a
+small-cap index:
+
+```
+python backtest.py --datasets 2026q1_form345.zip 2026q2_form345.zip --benchmark IWM
+```
+
+`sweep.py` tests eight tighter versions of the signal and splits the results by date, so a variant
+that only worked in one stretch can't pass as a discovery:
+
+```
+python sweep.py --datasets 2026q1_form345.zip 2026q2_form345.zip 2026q3_form345.zip --split 2026-07-01 --benchmark IWM
+```
+
+Trust a variant only if it beats the benchmark in both the train and holdout columns, with the mean
+well above its `+/-mo` error bar. More history (older quarterly zips from the same SEC page) makes
+every conclusion stronger.
 
 ## Going live, in order
 
