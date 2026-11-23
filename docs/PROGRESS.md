@@ -3,6 +3,13 @@
 This project began as a trading agent and became a research programme about whether it should trade at all. The
 commit history follows the same order as the stages below.
 
+## Before this: the Congress copy-trader
+
+The first version copied trades that members of Congress disclose. It is kept in
+[congress-copytrader](https://github.com/jrdpaulino/congress-copytrader). The limit was the data: disclosures can arrive
+up to 45 days after a trade, so a daily report is rarely news. That pushed the project to Form 4 insider filings, which
+are due within two business days.
+
 ## Stage 1: collect, signal, trade behind a gate
 
 An agent that reads the SEC's daily Form 4 index, parses the ownership XML and keeps open-market purchases by
