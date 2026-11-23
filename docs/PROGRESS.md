@@ -40,11 +40,61 @@ at each rebalance date, with negatives set to zero and the result shrunk toward 
 a holdout block, and the README says to count attempts, since every extra idea raises the chance that one looks good
 by luck.
 
+## Results
+
+Figures are from the project's own runs in November 2026. Active return is the stock's return minus the benchmark's,
+measured from the next day's open after the filing.
+
+### Stage 2: insider-cluster signal
+
+| Test | Benchmark | Horizon | Mean | Median | Beat benchmark |
+| --- | --- | --- | ---: | ---: | ---: |
+| All 2,104 signals | SPY | 90 days | -2.2% | -4.5% | 41% |
+| All 2,104 signals | IWM | 90 days | -1.8% | -3.4% | 43% |
+| Baseline, train 2023-2025 (n=1,387) | IWM | 90 days | -1.4% +/- 0.7% | negative | n/a |
+| Baseline, holdout 2026 (n=422) | IWM | 90 days | -3.2% +/- 4.2% | negative | n/a |
+
+All eight tested variants (3+ insiders, $150k+ clusters, CEO/CFO alone, price $10+, trade within 5 days, and
+combinations) had a negative mean and median in both periods. The +/- is one standard error, clustered by month.
+Because eight variants were compared on the same data, a lucky one would have been expected by chance, and none was.
+
+A live dry run on 2026-11-19 collected 5,871 filings with no failures and none unparseable, found 67 signals and
+produced 4 simulated orders (55 deferred, 8 rejected). Nothing reached the broker.
+
+### Stage 3: price signals and the adaptive model
+
+2,846 stocks and five years of prices. Mean active return per 20-trading-day period against IWM, +/- one standard
+error. The portfolio held the top 30 stocks at equal weight with 10 bps cost per side.
+
+| Strategy | Train (n=32) | Holdout, Oct 2025 on (n=14) |
+| --- | ---: | ---: |
+| Adaptive | +0.14% +/- 1.0% | -2.90% +/- 1.3% |
+| Equal weight | +1.06% +/- 1.0% | -3.13% +/- 1.6% |
+| Momentum only | +2.12% +/- 1.5% | -1.92% +/- 2.4% |
+| Trend only | -0.55% +/- 1.2% | -2.53% +/- 1.8% |
+| 52-week high only | -0.59% +/- 0.8% | -2.02% +/- 1.5% |
+
+The pass test was that the adaptive model must beat its best single signal on holdout data by more than the standard
+error. It failed: it trailed momentum in the holdout and trailed equal weight in training. Momentum looked promising in
+training (about 1.4 standard errors) and did not carry into the holdout.
+
+The news-buzz signal could not be tested. The available news history starts in April 2026, which leaves about seven
+months and only three scorable periods, so that run says nothing about the signal.
+
+### Caveats
+
+- The stock list is today's survivors, which flatters every number.
+- Prices and volume are IEX-only.
+- Backtest holds overlap in the insider-signal tests.
+- All 14 holdout periods fall in one market regime.
+- Order placement was never tested against a live broker.
+- The first version of the adaptive engine let a signal with too little history block all the others. This is fixed
+  in the code: a signal with fewer than 12 readings now sits out at weight 0.
+
 ## Outcome
 
-None of the three stages showed an edge worth trading. The result files from these runs were not kept in this
-repository, so the figures are not reproduced here. The commands in the README rerun everything from the SEC and
-Alpaca data.
+None of the three stages showed an edge worth trading. The recommendation at the time was to keep the agent in dry run
+and not trade it with money.
 
 ## What it taught
 
