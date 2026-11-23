@@ -8,6 +8,13 @@ are closed automatically after a hold period.
 > Not financial advice. Insider-buying edges are modest, shrink as they become known, and can
 > disappear. Backtest first, run on paper for weeks, and never trade money you can't lose.
 
+> **Status: research finished, no edge found.** This repository is the first stage of a longer project. The
+> insider-cluster rule, a parameter sweep with a holdout period, and a multi-signal adaptive model were each
+> tested offline, and none showed an edge worth trading. The work continues in
+> [Market Signal Conductor](https://github.com/jrdpaulino/market-signal-conductor), which keeps score of its own
+> forecasts and keeps trading code behind a coded evidence gate. See [docs/PROGRESS.md](docs/PROGRESS.md) for how the
+> project developed and what it taught.
+
 ## Flow
 
 ```
@@ -143,3 +150,36 @@ Alternatives: a systemd timer, or a scheduled GitHub Actions workflow (store key
 `market_order`, `close_position`. Implement those for Interactive Brokers, Schwab or Tradier.
 Fidelity has no public trading API for individual customers.
 
+## Multi-signal research (backtest only, places no orders)
+
+`multisignal.py` tests whether several signals combined, each weighted by how well it has recently predicted
+returns, beat the best single signal. It never trades.
+
+    .\.venv\Scripts\python multisignal.py download --years 5 --limit 300   # quick trial first
+    .\.venv\Scripts\python multisignal.py download --years 5               # full universe (slow, resumable)
+    .\.venv\Scripts\python multisignal.py news --years 3                   # optional; needs news access
+    .\.venv\Scripts\python multisignal.py backtest --split 0.7
+    .\.venv\Scripts\python multisignal.py backtest --signals momentum,trend,high52,news --split 0.7
+
+How it works: monthly (20-trading-day) non-overlapping periods; signals = 12-1 momentum, 200-day trend,
+52-week-high proximity, and (optionally) news buzz discounted by each stock's past follow-through vs reversal.
+Weights = trailing rank correlation with returns already known at the rebalance date, negatives set to zero,
+shrunk 50% toward equal; if no signal has positive trailing IC the model holds the benchmark. Output compares
+adaptive vs equal-weight vs each signal alone, with a train/holdout split.
+
+Limits: the stock list is today's survivors (upward bias); IEX-only volume; news history on the free Alpaca plan
+is unverified; social-media volume has no free historical source and is not implemented; the downloaders are
+untested against live Alpaca. Judge only on the holdout block, and be suspicious of small gaps.
+
+### Price-signal ideas (second batch)
+
+Hypotheses fixed before running: `reversal` (last month's losers bounce), `lowvol` (calm stocks beat wild ones),
+`resmom` (12-1 momentum after removing market beta), `volspike` (recent volume vs prior 60 days; high volume
+followed by gains). Gap spikes are not implemented. Adaptive weighting only ever zeroes a wrong-way signal,
+it never flips it, so read the `only:<signal>` rows for direction.
+
+    multisignal.py backtest --signals new --split 0.7      # the four new ideas
+    multisignal.py backtest --signals price --split 0.7    # all seven price signals together
+
+A signal with fewer than 12 correlation readings sits out at weight 0 instead of blocking the others.
+Each extra idea you try raises the chance one looks good by luck: count your attempts.
